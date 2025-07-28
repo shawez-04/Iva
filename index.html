@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iva AI Companion</title>
+    <!-- Link to the stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Add Font Awesome for the icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- Main content area that holds the chat window -->
+    <main>
+        <div id="chat-window">
+            <!-- The header for the chat window -->
+            <header id="chat-header">
+                <div class="header-content">
+                    <span class="status-dot"></span>
+                    <h1 class="header-title">Iva</h1>
+                </div>
+                <button id="theme-toggle" title="Toggle theme">
+                    <i class="fas fa-sun"></i> <!-- Default icon is sun (for dark mode) -->
+                </button>
+            </header>
+
+            <div id="chat-messages">
+                <!-- Messages will be added here by JavaScript -->
+            </div>
+            <form id="chat-form">
+                <input id="chat-input" type="text" placeholder="Type your message..." autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- The footer -->
+    <footer id="footer">
+        <div class="footer-container">
+            <p class="footer-title">Made with ❤️ by Mohd Shawez Khan | Let's Connect</p>
+            <div class="footer-links">
+                <a href="mailto:kshawez786@gmail.com"><i class="fa-solid fa-envelope"></i> Email</a>
+                <a href="https://www.linkedin.com/in/mohd-shawez-khan/" target="_blank"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
+                <a href="https://github.com/shawez-04" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Link to your JavaScript file -->
+    <script src="script.js"></script>
+</body>
+</html>

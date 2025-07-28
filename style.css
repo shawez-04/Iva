@@ -6,7 +6,7 @@
 :root {
     /* Base */
     --clr-dark-a0: #000000;
-    --clr-light-a0: #ffffff;
+    --clr-text: #ffffff;
 
     /* Surface */
     --clr-surface-a0: #121212;
@@ -29,7 +29,7 @@
 /* LIGHT THEME */
 [data-theme='light'] {
     /* Base */
-    --clr-dark-a0: #18181b;       /* Nearly Black */
+    --clr-text: #18181b;       /* Nearly Black */
     --clr-light-a0: #ffffff;    /* White */
 
     /* Surface */
@@ -51,7 +51,7 @@
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--clr-surface-a0);
-    color: var(--clr-light-a0);
+    color: var(--clr-text);
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -249,7 +249,7 @@ main {
     border-bottom-right-radius: 0.25rem;
 }
 [data-theme='light'] .message.user .bubble {
-    color: var(--clr-light-a0);
+    color: var(--clr-text);
 }
 .message.error .bubble {
     background-color: transparent;
@@ -275,7 +275,7 @@ main {
     border: 1px solid transparent;
     border-radius: 0.75rem;
     padding: 0.75rem 1rem;
-    color: var(--clr-light-a0);
+    color: var(--clr-text);
     font-size: 1rem;
     transition: border-color 0.2s ease-in-out, background-color 0.3s, color 0.3s;
 }
@@ -298,7 +298,7 @@ main {
     transition: background-color 0.2s ease-in-out;
 }
 [data-theme='light'] #chat-form button {
-    color: var(--clr-light-a0);
+    color: var(--clr-text);
 }
 #chat-form button:hover {
     background-color: var(--clr-primary-a20);
@@ -312,7 +312,7 @@ main {
 #footer {
     width: 100%;
     background-color: var(--clr-surface-a0);
-    color: var(--clr-light-a0);
+    color: var(--clr-text);
     padding: 15px 0;
     text-align: center;
     border-top: 2px solid var(--clr-primary-a20);

@@ -128,3 +128,24 @@ chatForm.addEventListener('submit', async (event) => {
         sendButton.textContent = 'Send';
     }
 });
+
+// --- Scroll Animation for Sections ---
+// Select ALL sections that need to be animated
+const sectionsToAnimate = document.querySelectorAll('#about, #features');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+        }
+    });
+}, {
+    threshold: 0.1 
+});
+
+// Loop through each section and tell the observer to watch it
+sectionsToAnimate.forEach(section => {
+    observer.observe(section);
+});
+

@@ -8,7 +8,7 @@ const body = document.body;
 const iconPlaceholder = document.getElementById('svg-icon-placeholder');
 
 // --- Direct API Configuration ---
-const API_KEY = "AIzaSyC3CCSeWX1UjW1wm4mTf2CMD5wmeFRv1fk"; 
+const API_KEY = "${{ secrets.MY_API_KEY }}"; 
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
 // --- Conversation History & Personality ---

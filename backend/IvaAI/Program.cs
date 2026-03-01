@@ -11,20 +11,22 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers & Swagger
+// 1. Add Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add Database Context (Neon Postgres)
+// 2. Add Database Context (Neon Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Custom Services
+// 3. Register Custom Services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
-// Configure JWT Authentication
+// 4. Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Secret"] ?? throw new ArgumentNullException("JWT Secret is missing");
 
@@ -47,37 +49,34 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Configure User-Id Based Rate Limiting (The SDE-1 Flex)
+// 5. Configure User-Id Based Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     options.AddPolicy("UserRateLimit", httpContext =>
     {
-        // Extract the UserId from the JWT token
         var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // If authenticated, limit per user ID. Otherwise, fall back to IP (for open endpoints like login/register)
         var partitionKey = !string.IsNullOrEmpty(userId)
             ? userId
             : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10, // Max 10 requests
-            Window = TimeSpan.FromMinutes(1), // Per 1 minute window
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         });
     });
 });
 
-// CORS Policy (Allows your HTML/JS frontend to call this API)
+// 6. CORS Policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // In a real production scenario, replace AllowAnyOrigin with your specific GitHub Pages URL
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
@@ -93,16 +92,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Global Exception Handler (Keeps errors clean and prevents app crashes)
+// Global Exception Handler
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 
-// The order of these middleware components is crucial!
 app.UseCors("AllowFrontend");
-app.UseAuthentication(); // 1st: Verify who the user is
-app.UseAuthorization();  // 2nd: Verify what they can do
-app.UseRateLimiter();    // 3rd: Apply rate limits based on their identity
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

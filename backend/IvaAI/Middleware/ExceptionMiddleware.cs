@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Iva.Backend.Exceptions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -25,12 +26,35 @@ namespace Iva.Backend.Middleware
                 // Proceed to the next middleware or controller
                 await _next(context);
             }
+            catch (ServiceException ex)
+            {
+                // We log business logic exceptions as warnings, not critical server errors
+                _logger.LogWarning("Service Exception: {ErrorCode} - {Message}", ex.ErrorCode, ex.Message);
+                await HandleServiceExceptionAsync(context, ex);
+            }
             catch (Exception ex)
             {
-                // Log the exception cleanly
+                // Log unhandled exceptions cleanly
                 _logger.LogError(ex, "An unexpected error occurred.");
                 await HandleExceptionAsync(context, ex);
             }
+        }
+
+        private static Task HandleServiceExceptionAsync(HttpContext context, ServiceException exception)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = exception.StatusCode;
+
+            // Return the specific error format requested
+            var response = new
+            {
+                errorCode = exception.ErrorCode,
+                message = exception.Message,
+                statusCode = exception.StatusCode
+            };
+
+            var result = JsonSerializer.Serialize(response);
+            return context.Response.WriteAsync(result);
         }
 
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
@@ -38,7 +62,6 @@ namespace Iva.Backend.Middleware
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-            // Use ProblemDetails to return a standardized error format
             var problemDetails = new ProblemDetails
             {
                 Status = StatusCodes.Status500InternalServerError,

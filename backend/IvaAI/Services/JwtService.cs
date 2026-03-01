@@ -26,10 +26,9 @@ namespace Iva.Backend.Services
 
             var claims = new List<Claim>
             {
-                // Notice we use ClaimTypes.NameIdentifier for the UserId. 
-                // This is crucial for our Rate Limiting partition strategy later!
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

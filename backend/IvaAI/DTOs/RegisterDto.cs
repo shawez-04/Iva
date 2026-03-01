@@ -5,6 +5,10 @@ namespace Iva.Backend.DTOs
     public class RegisterDto
     {
         [Required]
+        [MaxLength(100)]
+        public string FullName { get; set; } = string.Empty; // Added for registration
+
+        [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
@@ -27,6 +31,7 @@ namespace Iva.Backend.DTOs
     {
         public string Token { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty; // Return name to frontend
         public Guid UserId { get; set; }
     }
 }

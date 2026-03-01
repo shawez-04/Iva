@@ -10,6 +10,10 @@ namespace Iva.Backend.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        [MaxLength(100)]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required]
         [EmailAddress]
         [MaxLength(255)]
         public string Email { get; set; } = string.Empty;

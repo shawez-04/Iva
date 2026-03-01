@@ -1,0 +1,21 @@
+name: Mirror to Private Repo
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Push to mirror repo
+        run: |
+          git remote add mirror https://shawez-0422:${{ secrets.MIRROR_TOKEN }}@github.com/shawez-0422/IvaAI-backend.git
+          git push --force mirror HEAD:master

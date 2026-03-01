@@ -15,7 +15,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Push to mirror repo
+      - name: Mirror repository
         run: |
+          git config --global user.name "mirror-bot"
+          git config --global user.email "mirror-bot@example.com"
+
           git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/shawez-0422/IvaAI-backend.git
+
           git push --force mirror master

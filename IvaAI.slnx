@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <File Path="TextFile1.txt" />
+  </Folder>
+  <Project Path="backend/IvaAI/Iva.Backend.csproj" />
+</Solution>

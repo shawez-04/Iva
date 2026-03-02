@@ -1,5 +1,5 @@
 // --- Configuration ---
-const API_BASE_URL = 'https://localhost:44369/api';
+const API_BASE_URL = 'https://ivaai-backend.onrender.com';
 // --- DOM Elements ---
 const body = document.body;
 const themeToggle = document.getElementById('theme-toggle');

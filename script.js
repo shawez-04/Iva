@@ -183,7 +183,7 @@ function startNewChat() {
     chatMessages.innerHTML = '';
 }
 
-// INIT
+// INIT 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthState();
 });

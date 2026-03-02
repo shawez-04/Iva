@@ -23,4 +23,4 @@ jobs:
 
           git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/shawez-0422/IvaAI-backend.git
 
-          git push --force mirror master
+          git push --force mirror HEAD:master

@@ -11,22 +11,22 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Controllers & Swagger
+// Add Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 2. Add Database Context (Neon Postgres)
+// Add Database Context (Neon Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Register Custom Services
+// Register Custom Services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddHttpClient<GeminiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
-// 4. Configure JWT Authentication
+// Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Secret"] ?? throw new ArgumentNullException("JWT Secret is missing");
 
@@ -49,7 +49,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 5. Configure User-Id Based Rate Limiting
+// Configure User-Id Based Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -72,12 +72,13 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-// 6. CORS Policy
+// CORS Policy (RESTRICTED FOR PRODUCTION)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        // Secured to our GitHub Pages domain (and localhost for local dev)
+        policy.WithOrigins("https://shawez-04.github.io", "http://localhost:3000", "http://127.0.0.1:3000")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -86,16 +87,20 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
+// SWAGGER ENABLED IN PRODUCTION
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Iva AI API V1");
+    // This makes Swagger load automatically at the root URL of our Render app!
+    c.RoutePrefix = string.Empty;
+});
 
 // Global Exception Handler
 app.UseMiddleware<ExceptionMiddleware>();
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); 
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();

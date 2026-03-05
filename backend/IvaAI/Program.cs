@@ -9,7 +9,13 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
+});
+
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
 
 // Add Controllers & Swagger
 builder.Services.AddControllers();

@@ -14,13 +14,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          persist-credentials: false 
 
-      - name: Mirror repository
+      - name: Prepare backend for mirror
         run: |
-          git config --global user.name "mirror-bot"
-          git config --global user.email "mirror-bot@example.com"
+          mkdir deploy
+          cp -r backend/IvaAI/* deploy/
+          cd deploy
+          git init
+          git checkout -b master
 
-          git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/shawez-0422/IvaAI-backend.git
+      - name: Push backend to mirror repo
+        env:
+          TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          cd deploy
+          git config user.name "mirror-bot"
+          git config user.email "mirror-bot@example.com"
 
-          git push --force mirror master
+          git add .
+          git commit -m "Deploy backend"
+
+          git remote add origin https://x-access-token:$TOKEN@github.com/shawez-0422/IvaAI-backend.git
+          git push origin master --force

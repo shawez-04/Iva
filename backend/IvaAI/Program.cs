@@ -9,32 +9,43 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
-});
+var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
+// Logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
-// Add Controllers & Swagger
+// Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add Database Context (Neon Postgres)
+// Database (Neon PostgreSQL)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Custom Services
+// Custom Services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddHttpClient<GeminiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
-// Configure JWT Authentication
+// JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["Secret"] ?? throw new ArgumentNullException("JWT Secret is missing");
+
+var secretKey = jwtSettings["Secret"];
+
+if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JWT Secret is missing or too short. Set JwtSettings__Secret environment variable (min 32 characters).");
+}
+
+var issuer = jwtSettings["Issuer"]
+    ?? throw new InvalidOperationException("JWT Issuer missing");
+
+var audience = jwtSettings["Audience"]
+    ?? throw new InvalidOperationException("JWT Audience missing");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -49,13 +60,16 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+
+        IssuerSigningKey =
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
 });
 
-// Configure User-Id Based Rate Limiting
+// Rate Limiting (User-based)
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -68,49 +82,52 @@ builder.Services.AddRateLimiter(options =>
             ? userId
             : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 10,
-            Window = TimeSpan.FromMinutes(1),
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 0
-        });
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
     });
 });
 
-// CORS Policy (RESTRICTED FOR PRODUCTION)
+// CORS (GitHub Pages frontend)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // Secured to our GitHub Pages domain (and localhost for local dev)
-        policy.WithOrigins("https://shawez-04.github.io", "http://localhost:3000", "http://127.0.0.1:3000")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+                "https://shawez-04.github.io",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
-// SWAGGER ENABLED IN PRODUCTION
+// Swagger
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Iva AI API V1");
-    // This makes Swagger load automatically at the root URL of our Render app!
     c.RoutePrefix = string.Empty;
 });
 
-// Global Exception Handler
+// Global Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
 
-// app.UseHttpsRedirection(); 
-
+// Middleware Pipeline
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.UseRateLimiter();
 
 app.MapControllers();

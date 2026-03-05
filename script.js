@@ -1,387 +1,371 @@
-// ELEMENTS
-const authSection = document.getElementById("auth-section");
-const appSection = document.getElementById("app-section");
+// ================= CONFIG =================
+// Pointing to your live Render backend!
+const API_BASE_URL = "https://ivaai-backend.onrender.com/api";
 
-const loginForm = document.getElementById("login-form");
-const registerForm = document.getElementById("register-form");
+// ================= DOM ELEMENTS =================
+const body = document.body;
+const themeToggle = document.getElementById('theme-toggle');
+const authSection = document.getElementById('auth-section');
+const appSection = document.getElementById('app-section');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const chatForm = document.getElementById('chat-form');
+const historyList = document.getElementById('history-list');
+const chatTitleDisplay = document.getElementById('chat-title-display');
 
-const showRegister = document.getElementById("show-register");
-const showLogin = document.getElementById("show-login");
+// Profile & Greeting DOM Elements
+const profileToggleBtn = document.getElementById('profile-toggle-btn');
+const profileMenu = document.getElementById('profile-menu');
+const dropdownEmail = document.getElementById('dropdown-email');
+const clearChatsBtn = document.getElementById('clear-chats-btn');
+const headerUserName = document.getElementById('header-user-name');
 
-const loginError = document.getElementById("login-error");
-const registerError = document.getElementById("register-error");
-
-const headerUserName = document.getElementById("header-user-name");
-const dropdownEmail = document.getElementById("dropdown-email");
-
-const logoutBtn = document.getElementById("logout-btn");
-const clearChatsBtn = document.getElementById("clear-chats-btn");
-
-const profileToggleBtn = document.getElementById("profile-toggle-btn");
-const profileMenu = document.getElementById("profile-menu");
-
-const newChatBtn = document.getElementById("new-chat-btn");
-const historyList = document.getElementById("history-list");
-
-const chatMessages = document.getElementById("chat-messages");
-const chatForm = document.getElementById("chat-form");
-const chatInput = document.getElementById("chat-input");
-const chatTitleDisplay = document.getElementById("chat-title-display");
-
-const themeToggle = document.getElementById("theme-toggle");
-
-let currentUser = null;
-let chats = [];
+// ================= STATE =================
+let jwtToken = localStorage.getItem('iva_token');
+let userEmail = localStorage.getItem('iva_email');
+let userFullName = localStorage.getItem('iva_name');
 let currentChatId = null;
 
-
-
-/* ---------------- AUTH SWITCH ---------------- */
-
-showRegister.addEventListener("click", e => {
-    e.preventDefault();
-    loginForm.classList.add("hidden");
-    registerForm.classList.remove("hidden");
+// ================= THEME MANAGEMENT =================
+themeToggle.addEventListener('click', () => {
+    body.dataset.theme = body.dataset.theme === 'light' ? '' : 'light';
+    localStorage.setItem('theme', body.dataset.theme || 'dark');
+    themeToggle.querySelector('i').className = body.dataset.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
 });
 
-showLogin.addEventListener("click", e => {
-    e.preventDefault();
-    registerForm.classList.add("hidden");
-    loginForm.classList.remove("hidden");
+// ================= PROFILE DROPDOWN LOGIC =================
+profileToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileMenu.classList.toggle('hidden');
 });
 
-
-/* ---------------- REGISTER ---------------- */
-
-registerForm.addEventListener("submit", e => {
-    e.preventDefault();
-
-    const name = document.getElementById("register-name").value;
-    const email = document.getElementById("register-email").value;
-    const password = document.getElementById("register-password").value;
-
-    let users = JSON.parse(localStorage.getItem("iva_users")) || [];
-
-    const exists = users.find(u => u.email === email);
-
-    if (exists) {
-        registerError.textContent = "Account already exists.";
-        registerError.classList.remove("hidden");
-        return;
+document.addEventListener('click', (e) => {
+    if (profileMenu && !profileToggleBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+        profileMenu.classList.add('hidden');
     }
-
-    users.push({ name, email, password });
-
-    localStorage.setItem("iva_users", JSON.stringify(users));
-
-    registerError.classList.add("hidden");
-
-    alert("Account created! Please login.");
-
-    registerForm.reset();
-    registerForm.classList.add("hidden");
-    loginForm.classList.remove("hidden");
 });
 
-
-/* ---------------- LOGIN ---------------- */
-
-loginForm.addEventListener("submit", e => {
-    e.preventDefault();
-
-    const email = document.getElementById("login-email").value;
-    const password = document.getElementById("login-password").value;
-
-    let users = JSON.parse(localStorage.getItem("iva_users")) || [];
-
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (!user) {
-        loginError.textContent = "Invalid email or password.";
-        loginError.classList.remove("hidden");
-        return;
+// ================= UI HELPERS =================
+function updateUIGreeting(name) {
+    if (headerUserName && name) {
+        const firstName = name.split(' ')[0];
+        headerUserName.textContent = `Hi, ${firstName} 👋`;
     }
-
-    loginError.classList.add("hidden");
-
-    localStorage.setItem("iva_current_user", JSON.stringify(user));
-
-    loadUser(user);
-});
-
-
-/* ---------------- LOAD USER ---------------- */
-
-function loadUser(user) {
-
-    currentUser = user;
-
-    authSection.classList.add("hidden");
-    appSection.classList.remove("hidden");
-
-    headerUserName.textContent = `Hi, ${user.name}`;
-    dropdownEmail.textContent = user.email;
-
-    loadChats();
 }
 
+function addMessage(text, role) {
+    const el = document.createElement('div');
+    // Normalize role names for CSS compatibility
+    const safeRole = (role === 'model' || role === 'ai' || role === 'assistant') ? 'model' : 'user';
+    el.className = `message ${safeRole}`;
+    // Wrap text in the bubble div to keep our CSS styling intact
+    el.innerHTML = `<div class="bubble">${text}</div>`;
+    chatMessages.appendChild(el);
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
+}
 
-/* ---------------- LOGOUT ---------------- */
+// ================= AUTH STATE & LOGOUT =================
+async function checkAuthState() {
+    if (jwtToken) {
+        authSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
 
-logoutBtn.addEventListener("click", e => {
+        if (dropdownEmail) dropdownEmail.textContent = userEmail || 'User';
+        updateUIGreeting(userFullName);
 
-    e.preventDefault();
-
-    localStorage.removeItem("iva_current_user");
-
-    location.reload();
-});
-
-
-/* ---------------- PROFILE MENU ---------------- */
-
-profileToggleBtn.addEventListener("click", () => {
-
-    profileMenu.classList.toggle("hidden");
-
-});
-
-
-document.addEventListener("click", e => {
-
-    if (!profileToggleBtn.contains(e.target) && !profileMenu.contains(e.target)) {
-        profileMenu.classList.add("hidden");
-    }
-
-});
-
-
-/* ---------------- CHAT SYSTEM ---------------- */
-
-function loadChats() {
-
-    const key = `iva_chats_${currentUser.email}`;
-
-    chats = JSON.parse(localStorage.getItem(key)) || [];
-
-    renderHistory();
-
-    if (chats.length > 0) {
-        openChat(chats[0].id);
+        await loadHistorySidebar();
+        if (!currentChatId) startNewChat();
     } else {
-        createNewChat();
+        authSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
     }
 }
 
-
-function saveChats() {
-
-    const key = `iva_chats_${currentUser.email}`;
-
-    localStorage.setItem(key, JSON.stringify(chats));
-}
-
-
-/* ---------------- NEW CHAT ---------------- */
-
-newChatBtn.addEventListener("click", () => {
-
-    createNewChat();
-
+document.getElementById('logout-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    handleLogout();
 });
 
-
-function createNewChat() {
-
-    const id = Date.now();
-
-    const chat = {
-        id,
-        title: "New Conversation",
-        messages: []
-    };
-
-    chats.unshift(chat);
-
-    saveChats();
-
-    renderHistory();
-
-    openChat(id);
+function handleLogout() {
+    localStorage.removeItem('iva_token');
+    localStorage.removeItem('iva_email');
+    localStorage.removeItem('iva_name');
+    jwtToken = null;
+    userEmail = null;
+    userFullName = null;
+    currentChatId = null;
+    checkAuthState();
+    if (profileMenu) profileMenu.classList.add('hidden');
 }
 
+// ================= HISTORY SIDEBAR (API) =================
+async function loadHistorySidebar() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/messages/history`, {
+            headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
 
-/* ---------------- HISTORY ---------------- */
+        if (res.status === 401) return handleLogout(); // Auto-logout if token expired
+        if (!res.ok) return;
 
-function renderHistory() {
+        const chats = await res.json();
+        historyList.innerHTML = '';
 
-    historyList.innerHTML = "";
+        chats.forEach(chat => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            if (currentChatId === chat.id) li.classList.add('active');
 
-    chats.forEach(chat => {
+            // Keeps the beautiful FontAwesome icons and flexbox layout
+            li.innerHTML = `
+                <div class="chat-item-content">
+                    <span class="chat-title-text">
+                        <i class="far fa-comment-alt"></i> ${chat.title || "Conversation"}
+                    </span>
+                    <i class="fas fa-trash-alt delete-icon" title="Delete chat"></i>
+                </div>
+            `;
 
-        const li = document.createElement("li");
-
-        li.textContent = chat.title;
-
-        li.addEventListener("click", () => openChat(chat.id));
-
-        historyList.appendChild(li);
-
-    });
-
+            li.onclick = (e) => {
+                if (e.target.classList.contains('delete-icon')) {
+                    e.stopPropagation();
+                    deleteSingleChat(chat.id);
+                } else {
+                    loadChatSession(chat.id, chat.title);
+                }
+            };
+            historyList.appendChild(li);
+        });
+    } catch (err) {
+        console.error("Failed to load history", err);
+    }
 }
 
+// ================= DELETE SINGLE CHAT (API) =================
+async function deleteSingleChat(chatId) {
+    if (!confirm("Are you sure you want to permanently delete this conversation?")) return;
 
-/* ---------------- OPEN CHAT ---------------- */
+    try {
+        const res = await fetch(`${API_BASE_URL}/messages/${chatId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
 
-function openChat(id) {
+        if (res.status === 401) return handleLogout();
 
-    currentChatId = id;
-
-    const chat = chats.find(c => c.id === id);
-
-    chatTitleDisplay.textContent = chat.title;
-
-    chatMessages.innerHTML = "";
-
-    chat.messages.forEach(msg => {
-
-        addMessage(msg.text, msg.sender);
-
-    });
-
+        if (res.ok) {
+            if (currentChatId === chatId) startNewChat();
+            await loadHistorySidebar();
+        } else {
+            alert("Failed to delete chat.");
+        }
+    } catch (err) {
+        console.error("Error deleting chat", err);
+    }
 }
 
-
-/* ---------------- ADD MESSAGE ---------------- */
-
-function addMessage(text, sender) {
-
-    const div = document.createElement("div");
-
-    div.className = `message ${sender}`;
-
-    div.textContent = text;
-
-    chatMessages.appendChild(div);
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-
-/* ---------------- SEND MESSAGE ---------------- */
-
-chatForm.addEventListener("submit", e => {
-
+// ================= CLEAR ALL CHATS (API) =================
+clearChatsBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+    if (profileMenu) profileMenu.classList.add('hidden');
 
+    if (!confirm("Are you sure you want to permanently delete all your chats? This cannot be undone.")) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/messages/clear`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
+
+        if (res.status === 401) return handleLogout();
+
+        if (res.ok) {
+            historyList.innerHTML = '';
+            startNewChat();
+        } else {
+            alert("Failed to clear chats.");
+        }
+    } catch (err) {
+        console.error("Error clearing chats", err);
+    }
+});
+
+// ================= LOAD SPECIFIC CHAT (API) =================
+async function loadChatSession(chatId, title) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/messages/${chatId}`, {
+            headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
+
+        if (res.status === 401) return handleLogout();
+        if (!res.ok) return;
+
+        const data = await res.json();
+        currentChatId = data.id;
+        chatTitleDisplay.textContent = title || "Conversation";
+        chatMessages.innerHTML = '';
+
+        data.messages.forEach(m => addMessage(m.content, m.role));
+        loadHistorySidebar();
+    } catch (err) {
+        console.error("Failed to load chat", err);
+    }
+}
+
+// ================= START NEW CHAT =================
+function startNewChat() {
+    currentChatId = null;
+    chatTitleDisplay.textContent = "New Conversation";
+    chatMessages.innerHTML = '';
+
+    const firstName = userFullName ? userFullName.split(' ')[0] : 'there';
+    addMessage(`Hello ${firstName}! I am Iva, your intelligent assistant created by Mohd Shawez Khan. How can I help you today?`, 'model');
+
+    document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
+    if (chatInput) chatInput.focus();
+}
+document.getElementById('new-chat-btn').addEventListener('click', startNewChat);
+
+// ================= SEND MESSAGE (API) =================
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const text = chatInput.value.trim();
-
     if (!text) return;
 
-    const chat = chats.find(c => c.id === currentChatId);
+    addMessage(text, 'user');
+    chatInput.value = '';
 
-    chat.messages.push({ sender: "user", text });
+    // UI Robustness: Disable button and show loading state
+    const btn = chatForm.querySelector('button');
+    const originalBtnText = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
 
-    addMessage(text, "user");
+    try {
+        const payload = { chatId: currentChatId, content: text };
 
-    chatInput.value = "";
+        const res = await fetch(`${API_BASE_URL}/messages/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` },
+            body: JSON.stringify(payload)
+        });
 
-    // fake AI response
-    setTimeout(() => {
+        if (res.status === 401) return handleLogout();
+        if (!res.ok) throw new Error("Server error");
 
-        const reply = "Iva is thinking... 🤖";
+        const data = await res.json();
 
-        chat.messages.push({ sender: "ai", text: reply });
+        if (!currentChatId) {
+            currentChatId = data.chatId;
+            await loadHistorySidebar();
+        }
 
-        addMessage(reply, "ai");
+        addMessage(data.aiResponse, 'model');
 
-        saveChats();
-
-    }, 700);
-
-    saveChats();
+    } catch (err) {
+        addMessage("⚠️ Failed to communicate with the server. Please try again.", 'error');
+    } finally {
+        // Restore button state
+        btn.textContent = originalBtnText;
+        btn.disabled = false;
+        chatInput.focus();
+    }
 });
 
-
-/* ---------------- CLEAR CHATS ---------------- */
-
-clearChatsBtn.addEventListener("click", e => {
-
+// ================= AUTH FORMS SUBMISSIONS =================
+document.getElementById('show-register').onclick = (e) => {
     e.preventDefault();
+    loginForm.classList.add('hidden');
+    registerForm.classList.remove('hidden');
+};
+document.getElementById('show-login').onclick = (e) => {
+    e.preventDefault();
+    registerForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+};
 
-    if (!confirm("Clear all chats?")) return;
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = loginForm.querySelector('button');
+    btn.textContent = 'Logging in...'; // UI Loading state
 
-    chats = [];
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const loginError = document.getElementById('login-error');
 
-    saveChats();
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
-    renderHistory();
+        if (res.ok) {
+            const data = await res.json();
+            jwtToken = data.token;
+            userEmail = data.email;
+            userFullName = data.fullName;
 
-    chatMessages.innerHTML = "";
+            localStorage.setItem('iva_token', jwtToken);
+            localStorage.setItem('iva_email', userEmail);
+            localStorage.setItem('iva_name', userFullName);
 
-    chatTitleDisplay.textContent = "New Conversation";
-
+            loginForm.reset();
+            loginError.classList.add('hidden');
+            checkAuthState();
+        } else {
+            loginError.textContent = 'Invalid email or password.';
+            loginError.classList.remove('hidden');
+        }
+    } catch (err) {
+        loginError.textContent = 'Cannot reach server.';
+        loginError.classList.remove('hidden');
+    } finally {
+        btn.textContent = 'Log In';
+    }
 });
 
+registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = registerForm.querySelector('button');
+    btn.textContent = 'Creating...'; // UI Loading state
 
-/* ---------------- THEME TOGGLE ---------------- */
+    const fullName = document.getElementById('register-name').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const registerError = document.getElementById('register-error');
 
-themeToggle.addEventListener("click", () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName, email, password })
+        });
 
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-
-    if (currentTheme === "light") {
-
-        document.documentElement.removeAttribute("data-theme");
-
-        localStorage.setItem("iva_theme", "dark");
-
-    } else {
-
-        document.documentElement.setAttribute("data-theme", "light");
-
-        localStorage.setItem("iva_theme", "light");
-
+        if (res.ok) {
+            alert("Account created! Please log in.");
+            document.getElementById('show-login').click();
+            document.getElementById('login-email').value = email;
+            registerForm.reset();
+            registerError.classList.add('hidden');
+        } else {
+            const errorData = await res.json();
+            registerError.textContent = errorData.message || 'Registration failed.';
+            registerError.classList.remove('hidden');
+        }
+    } catch (err) {
+        registerError.textContent = 'Cannot reach server.';
+        registerError.classList.remove('hidden');
+    } finally {
+        btn.textContent = 'Sign Up';
     }
-
 });
 
-
-/* ---------------- LOAD THEME ---------------- */
-
-function loadTheme() {
-
-    const savedTheme = localStorage.getItem("iva_theme");
-
-    if (savedTheme === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-    }
-
-}
-
-
-/* ---------------- AUTH CHECK ---------------- */
-
-function checkAuth() {
-
-    const user = JSON.parse(localStorage.getItem("iva_current_user"));
-
-    if (user) {
-
-        loadUser(user);
-
-    }
-
-}
-
-
-/* ---------------- INIT ---------------- */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    loadTheme();
-
-    checkAuth();
-
+// ================= APP INITIALIZATION =================
+document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('theme') === 'light') body.dataset.theme = 'light';
+    if (themeToggle) themeToggle.querySelector('i').className = body.dataset.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    checkAuthState();
 });

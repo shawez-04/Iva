@@ -16,10 +16,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Remove workflows before mirroring
+        run: |
+          rm -rf .github/workflows
+
       - name: Mirror repository
+        env:
+          TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           git config --global user.name "mirror-bot"
           git config --global user.email "mirror-bot@example.com"
 
-          git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/shawez-0422/IvaAI-backend.git
+          git remote remove mirror || true
+          git remote add mirror https://x-access-token:$TOKEN@github.com/shawez-0422/IvaAI-backend.git
+
           git push mirror master --force

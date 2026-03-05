@@ -1,5 +1,3 @@
-// ================= CONFIG =================
-// Pointing to your live Render backend!
 const API_BASE_URL = "https://ivaai-backend.onrender.com/api";
 
 // ================= DOM ELEMENTS =================

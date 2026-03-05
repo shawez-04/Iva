@@ -1,56 +1,392 @@
-﻿# 🤖 Iva AI Companion
+🤖 Iva AI Companion
 
-Welcome to **Iva**, a modern and stylish AI chat companion built with HTML, CSS, and JavaScript, powered by the **Google Gemini API**. Iva features a sleek, dual-theme user interface, engaging animations, and a customizable ai
+Iva AI Companion is a full-stack AI-powered conversational assistant built with .NET 8 Web API, PostgreSQL, and Vanilla JavaScript.
 
----
+The system provides secure authentication, persistent chat history, and contextual AI responses powered by Google Gemini. This project demonstrates production-grade backend architecture, scalable API design, AI integration, and modern deployment practices.
 
-## ✨ Features
+🌐 Live Demo
 
-- 🧠 **Conversational AI**: Natural, context-aware chat powered by the Google Gemini API.
-- 🎭 **Customizable Personality**: Easily edit Iva's name, creator, and behavior via the JavaScript file.
-- 🌗 **Dual-Theme UI**: Toggle between dark and light modes. Theme preference is saved in local storage.
-- 💫 **Animated Interface**: Gradient border effects, pulsing "online" status, and scroll-triggered section reveals.
-- 📱 **Responsive Design**: Fully responsive for desktop, tablet, and mobile users.
-- ⚙️ **Zero Dependencies (Frontend)**: Built entirely with vanilla HTML, CSS, and JavaScript.
-- 🎨 **Font Awesome Icons**: Clean and modern iconography using Font Awesome.
+Frontend (GitHub Pages): https://shawez-04.github.io/IvaAI/
 
----
+Backend API (Render): https://ivaai-backend.onrender.com
 
-## 🛠️ Tech Stack
+🏗️ System Architecture
 
-- **Frontend**: HTML, CSS, JavaScript  
-- **AI Backend**: Google Gemini API  
-- **Icons**: Font Awesome
+The project follows a clean layered architecture that separates concerns across different layers.
 
----
+Client (HTML/CSS/JS SPA)
+        │
+        ▼
+.NET 8 Web API Controllers
+        │
+        ▼
+Business Services
+(JWT, Gemini, Chat Logic)
+        │
+        ▼
+Entity Framework Core
+        │
+        ▼
+PostgreSQL Database (Neon)
 
-## 🚀 Getting Started
 
-### 📦 Prerequisites
+Design Principles
 
-To run locally, ensure you have **Node.js** installed. This is needed only for serving the files locally (especially useful for assets like 3D icons).
+Separation of concerns
 
-### 📁 Installation & Setup
+Stateless authentication
 
-```bash
-git clone https://github.com/your-username/iva-ai-companion.git
-cd iva-ai-companion
+DTO-based API contracts
 
-📂 Project Structure
-iva-ai-companion/
-├── public/
-│   ├── index.html       # Main HTML file
-│   ├── style.css        # Styles including themes, layout, and animations
-│   └── script.js        # AI logic, message handling, and UI interactivity
-├── README.md
+Centralized error handling
 
-🔍 Running the App
-You can open index.html directly in your browser. For full functionality (like 3D assets), consider using a local server:
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Rate limiting for abuse protection
+
+Containerized deployment
+
+🧩 System Design Diagram
+
+                    ┌───────────────────────────┐
+                    │        User Browser       │
+                    │   (HTML / CSS / JS SPA)   │
+                    └─────────────┬─────────────┘
+                                  │
+                                  │ HTTPS Requests
+                                  ▼
+                    ┌───────────────────────────┐
+                    │        Frontend UI        │
+                    │      GitHub Pages CDN     │
+                    └─────────────┬─────────────┘
+                                  │
+                                  │ Fetch API Requests
+                                  ▼
+                    ┌───────────────────────────┐
+                    │       .NET 8 Web API      │
+                    │      (Hosted on Render)   │
+                    └─────────────┬─────────────┘
+                                  │
+               ┌──────────────────┼──────────────────┐
+               │                  │                  │
+               ▼                  ▼                  ▼
+      ┌───────────────┐  ┌─────────────────┐  ┌────────────────┐
+      │ Auth Service  │  │  Chat Service   │  │ Gemini Service │
+      │ JWT + BCrypt  │  │ Message Logic   │  │ AI Integration │
+      └──────┬────────┘  └────────┬────────┘  └────────┬───────┘
+             │                    │                    │
+             ▼                    ▼                    ▼
+      ┌────────────────────────────────────────────────────┐
+      │                Entity Framework Core               │
+      │                 Database Access Layer              │
+      └───────────────────────────┬────────────────────────┘
+                                  │
+                                  ▼
+                       ┌───────────────────────┐
+                       │   PostgreSQL (Neon)   │
+                       │ Users / Chats / Msgs  │
+                       └───────────────────────┘
+
+
+                           External AI Call
+                                  │
+                                  ▼
+                       ┌───────────────────────┐
+                       │   Google Gemini API   │
+                       │     gemini-2.5-flash  │
+                       └───────────────────────┘
+
+
+🔄 Message Request Lifecycle
+
+When a user sends a message, the system processes it as follows:
+
+1️⃣ User Sends Message
+
+Frontend calls: POST /api/messages/send
+
+Request payload:
+
+{
+  "ChatId": "uuid",
+  "Content": "UserMessage"
+}
+
+
+(Sent with JWT Token in Authorization header)
+
+2️⃣ Authentication
+
+Backend middleware validates the JWT token and extracts:
+
+UserId
+
+Email
+
+FullName
+
+3️⃣ Chat Handling
+
+The API checks:
+
+If ChatId exists → Load chat
+
+If ChatId is null → Create new chat
+
+4️⃣ Store User Message
+
+The user message is saved in the database:
+
+Table: Messages
+
+Role: User
+
+5️⃣ Load Conversation Context
+
+Backend loads the Full chat history + New user message. This allows contextual AI responses.
+
+6️⃣ Gemini API Call
+
+The backend sends the conversation to the Google Gemini API (Model: gemini-2.5-flash) with system instructions defining the Iva AI persona.
+
+7️⃣ Save AI Response
+
+The AI response is stored in the database:
+
+Table: Messages
+
+Role: Assistant (Model)
+
+8️⃣ Response Returned to Frontend
+
+The API returns:
+
+{
+  "chatId": "uuid",
+  "userMessage": "...",
+  "aiResponse": "..."
+}
+
+
+The UI updates instantly.
+
+⚙️ Backend Features (.NET 8)
+
+🔐 Authentication & Security
+
+Secure authentication is implemented using JWT tokens. Features include:
+
+Secure registration and login
+
+Password hashing using BCrypt.Net-Next
+
+JWT token-based stateless authentication
+
+Claims-based authorization
+
+[Authorize] protection for endpoints
+
+JWT tokens contain: UserId, Email, FullName
+
+🧠 AI Integration (Google Gemini)
+
+The AI functionality is powered by gemini-2.5-flash. A dedicated GeminiService handles:
+
+API communication
+
+Prompt engineering
+
+Conversation memory
+
+Response formatting
+
+AI Persona: The assistant behaves as Iva AI Companion and acknowledges Mohd Shawez Khan as its creator.
+
+💬 Stateful Conversation Memory
+
+To maintain context, every AI request sends the Complete chat history + Current user message. This enables multi-turn conversations.
+
+🗄️ Database Design
+
+The system uses PostgreSQL (Neon) with Entity Framework Core.
+
+Entities
+
+User: Id, FullName, Email, PasswordHash, CreatedAt
+
+Chat: Id, UserId, Title, CreatedAt
+
+Message: Id, ChatId, Role, Content, CreatedAt
+
+Relationships
+
+User 1 ─── N Chat
+
+Chat 1 ─── N Message
+
+Cascade deletion ensures:
+
+Deleting a User removes all their chats.
+
+Deleting a Chat removes all its messages.
+
+🚀 Smart Message Endpoint
+
+Instead of two calls (Create Chat & Send Message), the backend performs everything through a single endpoint: POST /api/messages/send.
+
+This endpoint:
+
+Creates a chat if necessary
+
+Saves user message
+
+Calls Gemini API
+
+Saves AI response
+
+Returns result
+
+Benefits: Reduced latency, fewer network requests, and better UX.
+
+🛡️ API Reliability
+
+Global Exception Handling
+
+Custom middleware (ExceptionMiddleware) provides:
+
+Clean controllers (no repeated try-catches)
+
+Standardized error responses (ProblemDetails JSON format)
+
+Easier debugging
+
+Rate Limiting
+
+A fixed-window rate limiter prevents abuse.
+Strategy: Rate limit per UserId, with a fallback to IP address if unauthenticated.
+
+🌐 Frontend Features
+
+The frontend is a lightweight SPA using vanilla JavaScript.
+Benefits: Fast loading, minimal dependencies, simple architecture.
+
+🔑 Authentication State
+
+Authentication data is securely stored in localStorage (jwtToken, userEmail, userFullName).
+
+Auto Login: Users automatically bypass login if a valid token exists.
+
+Auto Logout: If the API returns 401 Unauthorized, the system logs out automatically.
+
+💬 Chat Interface
+
+Real-time chat rendering & Auto scrolling
+
+User vs AI message bubbles
+
+Loading indicator during AI responses
+
+📜 Chat History
+
+Sidebar displays previous conversations. Users can load past chats, delete individual chats, or clear all chats.
+
+🎨 UI / UX Features
+
+Dynamic Theming
+
+Supports Light Mode & Dark Mode. Theme preference is saved in localStorage.
+
+Enterprise Style UI
+
+Profile dropdown menu
+
+Click-outside-to-close behavior
+
+FontAwesome icons
+
+Colored chat bubbles
+
+📱 Mobile Responsiveness
+
+Slide-in sidebar drawer
+
+Hamburger menu navigation
+
+Background overlay blur
+
+Auto-close sidebar on chat selection
+
+🐳 DevOps & Deployment
+
+Docker
+
+Backend containerized using a multi-stage Docker build.
+Benefits: Smaller image size, clean builds, easy deployment.
+
+🌍 Deployment
+
+Backend: Hosted on Render (Container hosting, Auto deployment, Production API hosting).
+
+Frontend: Hosted on GitHub Pages (Static hosting, Global CDN, Fast loading).
+
+📡 API Endpoints
+
+Authentication
+
+POST /api/auth/register
+
+POST /api/auth/login
+
+Chats
+
+GET /api/chats
+
+DELETE /api/chats/{chatId}
+
+DELETE /api/chats/clear
+
+Messages
+
+POST /api/messages/send
+
+GET /api/messages/{chatId}
+
+🛠️ Tech Stack
+
+Backend
+
+.NET 8 Web API
+
+Entity Framework Core
+
+PostgreSQL (Neon)
+
+JWT Authentication
+
+BCrypt.Net-Next
+
+Google Gemini API
+
+Frontend
+
+HTML5
+
+CSS3
+
+Vanilla JavaScript
+
+FontAwesome
+
+DevOps & Deployment
+
+Docker
+
+Render
+
+GitHub Pages
 
 👨‍💻 Author
-Mohd Shawez Khan
 
-📜 License
+Mohd Shawez Khan Electronics & Communication Engineering | Full-Stack & Backend Developer
 
-This project is open-source and free to use for personal and educational purposes. Contributions are welcome!
+GitHub: https://github.com/shawez-04
+
+LinkedIn: https://www.linkedin.com/in/mohd-shawez-khan

@@ -1,265 +1,219 @@
-const API_BASE_URL = "https://ivaai-backend.onrender.com";
-
-const body = document.body;
-
+// ELEMENTS
 const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
 
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
 
-const chatMessages = document.getElementById("chat-messages");
-const chatInput = document.getElementById("chat-input");
-const chatForm = document.getElementById("chat-form");
+const showRegister = document.getElementById("show-register");
+const showLogin = document.getElementById("show-login");
 
-const historyList = document.getElementById("history-list");
-const chatTitleDisplay = document.getElementById("chat-title-display");
+const loginError = document.getElementById("login-error");
+const registerError = document.getElementById("register-error");
+
+const headerUserName = document.getElementById("header-user-name");
+const dropdownEmail = document.getElementById("dropdown-email");
+
+const logoutBtn = document.getElementById("logout-btn");
+const clearChatsBtn = document.getElementById("clear-chats-btn");
 
 const profileToggleBtn = document.getElementById("profile-toggle-btn");
 const profileMenu = document.getElementById("profile-menu");
 
-const dropdownEmail = document.getElementById("dropdown-email");
-const headerUserName = document.getElementById("header-user-name");
-
-const clearChatsBtn = document.getElementById("clear-chats-btn");
-const logoutBtn = document.getElementById("logout-btn");
-
 const newChatBtn = document.getElementById("new-chat-btn");
+const historyList = document.getElementById("history-list");
+
+const chatMessages = document.getElementById("chat-messages");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const chatTitleDisplay = document.getElementById("chat-title-display");
 
 const themeToggle = document.getElementById("theme-toggle");
 
-const showRegister = document.getElementById("show-register");
-const showLogin = document.getElementById("show-login");
-
-
-let jwtToken = localStorage.getItem("iva_token");
-let userEmail = localStorage.getItem("iva_email");
-let userFullName = localStorage.getItem("iva_name");
-
+let currentUser = null;
+let chats = [];
 let currentChatId = null;
 
 
-// Helpers
 
-function addMessage(text, role) {
+/* ---------------- AUTH SWITCH ---------------- */
 
-    const el = document.createElement("div");
+showRegister.addEventListener("click", e => {
+    e.preventDefault();
+    loginForm.classList.add("hidden");
+    registerForm.classList.remove("hidden");
+});
 
-    el.className = `message ${role}`;
-
-    el.innerHTML = `<div class="bubble">${text}</div>`;
-
-    chatMessages.appendChild(el);
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-
-function updateUIGreeting(name) {
-
-    if (!name || !headerUserName) return;
-
-    const firstName = name.split(" ")[0];
-
-    headerUserName.textContent = `Hi, ${firstName} 👋`;
-}
+showLogin.addEventListener("click", e => {
+    e.preventDefault();
+    registerForm.classList.add("hidden");
+    loginForm.classList.remove("hidden");
+});
 
 
-// Auth State
+/* ---------------- REGISTER ---------------- */
 
-async function checkAuthState() {
+registerForm.addEventListener("submit", e => {
+    e.preventDefault();
 
-    if (jwtToken) {
+    const name = document.getElementById("register-name").value;
+    const email = document.getElementById("register-email").value;
+    const password = document.getElementById("register-password").value;
 
-        authSection.classList.add("hidden");
-        appSection.classList.remove("hidden");
+    let users = JSON.parse(localStorage.getItem("iva_users")) || [];
 
-        if (dropdownEmail) dropdownEmail.textContent = userEmail;
+    const exists = users.find(u => u.email === email);
 
-        updateUIGreeting(userFullName);
-
-        await loadHistorySidebar();
-
-        startNewChat();
+    if (exists) {
+        registerError.textContent = "Account already exists.";
+        registerError.classList.remove("hidden");
+        return;
     }
 
-    else {
+    users.push({ name, email, password });
 
-        authSection.classList.remove("hidden");
-        appSection.classList.add("hidden");
+    localStorage.setItem("iva_users", JSON.stringify(users));
+
+    registerError.classList.add("hidden");
+
+    alert("Account created! Please login.");
+
+    registerForm.reset();
+    registerForm.classList.add("hidden");
+    loginForm.classList.remove("hidden");
+});
+
+
+/* ---------------- LOGIN ---------------- */
+
+loginForm.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    let users = JSON.parse(localStorage.getItem("iva_users")) || [];
+
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (!user) {
+        loginError.textContent = "Invalid email or password.";
+        loginError.classList.remove("hidden");
+        return;
+    }
+
+    loginError.classList.add("hidden");
+
+    localStorage.setItem("iva_current_user", JSON.stringify(user));
+
+    loadUser(user);
+});
+
+
+/* ---------------- LOAD USER ---------------- */
+
+function loadUser(user) {
+
+    currentUser = user;
+
+    authSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
+
+    headerUserName.textContent = `Hi, ${user.name}`;
+    dropdownEmail.textContent = user.email;
+
+    loadChats();
+}
+
+
+/* ---------------- LOGOUT ---------------- */
+
+logoutBtn.addEventListener("click", e => {
+
+    e.preventDefault();
+
+    localStorage.removeItem("iva_current_user");
+
+    location.reload();
+});
+
+
+/* ---------------- PROFILE MENU ---------------- */
+
+profileToggleBtn.addEventListener("click", () => {
+
+    profileMenu.classList.toggle("hidden");
+
+});
+
+
+document.addEventListener("click", e => {
+
+    if (!profileToggleBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+        profileMenu.classList.add("hidden");
+    }
+
+});
+
+
+/* ---------------- CHAT SYSTEM ---------------- */
+
+function loadChats() {
+
+    const key = `iva_chats_${currentUser.email}`;
+
+    chats = JSON.parse(localStorage.getItem(key)) || [];
+
+    renderHistory();
+
+    if (chats.length > 0) {
+        openChat(chats[0].id);
+    } else {
+        createNewChat();
     }
 }
 
 
-// Login
+function saveChats() {
 
-if (loginForm) {
+    const key = `iva_chats_${currentUser.email}`;
 
-    loginForm.addEventListener("submit", async (e) => {
-
-        e.preventDefault();
-
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
-
-        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({ email, password })
-        });
-
-        if (!res.ok) {
-
-            alert("Invalid login credentials");
-            return;
-        }
-
-        const data = await res.json();
-
-        jwtToken = data.token;
-        userEmail = data.email;
-        userFullName = data.fullName;
-
-        localStorage.setItem("iva_token", jwtToken);
-        localStorage.setItem("iva_email", userEmail);
-        localStorage.setItem("iva_name", userFullName);
-
-        checkAuthState();
-    });
+    localStorage.setItem(key, JSON.stringify(chats));
 }
 
 
-// Register
+/* ---------------- NEW CHAT ---------------- */
 
-if (registerForm) {
+newChatBtn.addEventListener("click", () => {
 
-    registerForm.addEventListener("submit", async (e) => {
+    createNewChat();
 
-        e.preventDefault();
+});
 
-        const fullName = document.getElementById("register-name").value;
-        const email = document.getElementById("register-email").value;
-        const password = document.getElementById("register-password").value;
 
-        const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+function createNewChat() {
 
-            method: "POST",
+    const id = Date.now();
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+    const chat = {
+        id,
+        title: "New Conversation",
+        messages: []
+    };
 
-            body: JSON.stringify({ fullName, email, password })
-        });
+    chats.unshift(chat);
 
-        if (res.ok) {
+    saveChats();
 
-            alert("Account created. Please login.");
+    renderHistory();
 
-            registerForm.classList.add("hidden");
-            loginForm.classList.remove("hidden");
-        }
-
-        else {
-
-            alert("Registration failed.");
-        }
-    });
+    openChat(id);
 }
 
 
-// Switch Login/Register
+/* ---------------- HISTORY ---------------- */
 
-if (showRegister) {
-
-    showRegister.addEventListener("click", (e) => {
-
-        e.preventDefault();
-
-        loginForm.classList.add("hidden");
-        registerForm.classList.remove("hidden");
-    });
-}
-
-if (showLogin) {
-
-    showLogin.addEventListener("click", (e) => {
-
-        e.preventDefault();
-
-        registerForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-    });
-}
-
-
-// Send Chat Message
-
-if (chatForm) {
-
-    chatForm.addEventListener("submit", async (e) => {
-
-        e.preventDefault();
-
-        const text = chatInput.value.trim();
-
-        if (!text) return;
-
-        addMessage(text, "user");
-
-        chatInput.value = "";
-
-        const res = await fetch(`${API_BASE_URL}/api/messages/send`, {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${jwtToken}`
-            },
-
-            body: JSON.stringify({
-                chatId: currentChatId,
-                content: text
-            })
-        });
-
-        if (!res.ok) {
-
-            addMessage("Server error", "error");
-            return;
-        }
-
-        const data = await res.json();
-
-        if (!currentChatId) currentChatId = data.chatId;
-
-        addMessage(data.aiResponse, "model");
-
-        loadHistorySidebar();
-    });
-}
-
-
-// Load Chat History
-
-async function loadHistorySidebar() {
-
-    const res = await fetch(`${API_BASE_URL}/api/messages/history`, {
-
-        headers: {
-            "Authorization": `Bearer ${jwtToken}`
-        }
-    });
-
-    if (!res.ok) return;
-
-    const chats = await res.json();
+function renderHistory() {
 
     historyList.innerHTML = "";
 
@@ -267,178 +221,167 @@ async function loadHistorySidebar() {
 
         const li = document.createElement("li");
 
-        li.className = "history-item";
+        li.textContent = chat.title;
 
-        const title = document.createElement("span");
-        title.className = "chat-title";
-        title.textContent = chat.title;
-
-        title.onclick = () => loadChatSession(chat.id, chat.title);
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-chat-btn";
-        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-
-        deleteBtn.onclick = async (e) => {
-
-            e.stopPropagation();
-
-            await deleteChat(chat.id);
-        };
-
-        li.appendChild(title);
-        li.appendChild(deleteBtn);
+        li.addEventListener("click", () => openChat(chat.id));
 
         historyList.appendChild(li);
+
     });
+
 }
 
 
-// Load Chat Session
+/* ---------------- OPEN CHAT ---------------- */
 
-async function loadChatSession(chatId, title) {
+function openChat(id) {
 
-    const res = await fetch(`${API_BASE_URL}/api/messages/${chatId}`, {
+    currentChatId = id;
 
-        headers: {
-            "Authorization": `Bearer ${jwtToken}`
-        }
-    });
+    const chat = chats.find(c => c.id === id);
 
-    if (!res.ok) return;
-
-    const data = await res.json();
-
-    currentChatId = data.id;
+    chatTitleDisplay.textContent = chat.title;
 
     chatMessages.innerHTML = "";
 
-    if (chatTitleDisplay) chatTitleDisplay.textContent = title;
+    chat.messages.forEach(msg => {
 
-    data.messages.forEach(m => {
+        addMessage(msg.text, msg.sender);
 
-        addMessage(m.content, m.role);
     });
+
 }
 
 
-// Delete Single Chat
+/* ---------------- ADD MESSAGE ---------------- */
 
-async function deleteChat(chatId) {
+function addMessage(text, sender) {
 
-    const confirmDelete = confirm("Delete this chat?");
+    const div = document.createElement("div");
 
-    if (!confirmDelete) return;
+    div.className = `message ${sender}`;
 
-    const res = await fetch(`${API_BASE_URL}/api/messages/${chatId}`, {
+    div.textContent = text;
 
-        method: "DELETE",
+    chatMessages.appendChild(div);
 
-        headers: {
-            "Authorization": `Bearer ${jwtToken}`
-        }
-    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
 
-    if (!res.ok) {
 
-        alert("Failed to delete chat");
-        return;
+/* ---------------- SEND MESSAGE ---------------- */
+
+chatForm.addEventListener("submit", e => {
+
+    e.preventDefault();
+
+    const text = chatInput.value.trim();
+
+    if (!text) return;
+
+    const chat = chats.find(c => c.id === currentChatId);
+
+    chat.messages.push({ sender: "user", text });
+
+    addMessage(text, "user");
+
+    chatInput.value = "";
+
+    // fake AI response
+    setTimeout(() => {
+
+        const reply = "Iva is thinking... 🤖";
+
+        chat.messages.push({ sender: "ai", text: reply });
+
+        addMessage(reply, "ai");
+
+        saveChats();
+
+    }, 700);
+
+    saveChats();
+});
+
+
+/* ---------------- CLEAR CHATS ---------------- */
+
+clearChatsBtn.addEventListener("click", e => {
+
+    e.preventDefault();
+
+    if (!confirm("Clear all chats?")) return;
+
+    chats = [];
+
+    saveChats();
+
+    renderHistory();
+
+    chatMessages.innerHTML = "";
+
+    chatTitleDisplay.textContent = "New Conversation";
+
+});
+
+
+/* ---------------- THEME TOGGLE ---------------- */
+
+themeToggle.addEventListener("click", () => {
+
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+
+    if (currentTheme === "light") {
+
+        document.documentElement.removeAttribute("data-theme");
+
+        localStorage.setItem("iva_theme", "dark");
+
+    } else {
+
+        document.documentElement.setAttribute("data-theme", "light");
+
+        localStorage.setItem("iva_theme", "light");
+
     }
 
-    if (currentChatId === chatId) startNewChat();
+});
 
-    loadHistorySidebar();
+
+/* ---------------- LOAD THEME ---------------- */
+
+function loadTheme() {
+
+    const savedTheme = localStorage.getItem("iva_theme");
+
+    if (savedTheme === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+
 }
 
 
-// Clear All Chats
+/* ---------------- AUTH CHECK ---------------- */
 
-if (clearChatsBtn) {
+function checkAuth() {
 
-    clearChatsBtn.addEventListener("click", async () => {
+    const user = JSON.parse(localStorage.getItem("iva_current_user"));
 
-        const confirmClear = confirm("Delete ALL chats?");
+    if (user) {
 
-        if (!confirmClear) return;
+        loadUser(user);
 
-        await fetch(`${API_BASE_URL}/api/messages/clear`, {
+    }
 
-            method: "DELETE",
-
-            headers: {
-                "Authorization": `Bearer ${jwtToken}`
-            }
-        });
-
-        await loadHistorySidebar();
-
-        startNewChat();
-    });
 }
 
 
-// Logout
-
-if (logoutBtn) {
-
-    logoutBtn.addEventListener("click", () => {
-
-        localStorage.removeItem("iva_token");
-        localStorage.removeItem("iva_email");
-        localStorage.removeItem("iva_name");
-
-        jwtToken = null;
-
-        checkAuthState();
-    });
-}
-
-
-// New Chat
-
-if (newChatBtn) {
-
-    newChatBtn.addEventListener("click", () => {
-
-        startNewChat();
-    });
-}
-
-function startNewChat() {
-
-    currentChatId = null;
-
-    chatMessages.innerHTML = "";
-
-    if (chatTitleDisplay) chatTitleDisplay.textContent = "New Conversation";
-}
-
-
-// Profile Dropdown
-
-if (profileToggleBtn && profileMenu) {
-
-    profileToggleBtn.addEventListener("click", () => {
-
-        profileMenu.classList.toggle("hidden");
-    });
-}
-
-
-// Theme Toggle
-
-if (themeToggle) {
-
-    themeToggle.addEventListener("click", () => {
-
-        body.classList.toggle("light-theme");
-    });
-}
-
-
-// Init
+/* ---------------- INIT ---------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    checkAuthState();
+    loadTheme();
+
+    checkAuth();
+
 });

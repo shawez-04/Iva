@@ -32,7 +32,7 @@ jobs:
           git config user.email "mirror-bot@example.com"
 
           git add .
-          git commit -m "Deploy backend"
+          git commit -m "${{ github.event.head_commit.message }}"
 
           git remote add origin https://x-access-token:$TOKEN@github.com/shawez-0422/IvaAI-backend.git
           git push origin master --force

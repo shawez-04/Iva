@@ -17,16 +17,16 @@ const chatTitleDisplay = document.getElementById("chat-title-display");
 
 const profileToggleBtn = document.getElementById("profile-toggle-btn");
 const profileMenu = document.getElementById("profile-menu");
+
 const dropdownEmail = document.getElementById("dropdown-email");
+const headerUserName = document.getElementById("header-user-name");
 
 const clearChatsBtn = document.getElementById("clear-chats-btn");
 const logoutBtn = document.getElementById("logout-btn");
 
-const headerUserName = document.getElementById("header-user-name");
+const newChatBtn = document.getElementById("new-chat-btn");
 
 const themeToggle = document.getElementById("theme-toggle");
-
-const newChatBtn = document.getElementById("new-chat-btn");
 
 const showRegister = document.getElementById("show-register");
 const showLogin = document.getElementById("show-login");
@@ -39,9 +39,12 @@ let userFullName = localStorage.getItem("iva_name");
 let currentChatId = null;
 
 
+// Helpers
+
 function addMessage(text, role) {
 
     const el = document.createElement("div");
+
     el.className = `message ${role}`;
 
     el.innerHTML = `<div class="bubble">${text}</div>`;
@@ -54,12 +57,11 @@ function addMessage(text, role) {
 
 function updateUIGreeting(name) {
 
-    if (headerUserName && name) {
+    if (!name || !headerUserName) return;
 
-        const firstName = name.split(" ")[0];
+    const firstName = name.split(" ")[0];
 
-        headerUserName.textContent = `Hi, ${firstName} 👋`;
-    }
+    headerUserName.textContent = `Hi, ${firstName} 👋`;
 }
 
 
@@ -72,7 +74,7 @@ async function checkAuthState() {
         authSection.classList.add("hidden");
         appSection.classList.remove("hidden");
 
-        dropdownEmail.textContent = userEmail;
+        if (dropdownEmail) dropdownEmail.textContent = userEmail;
 
         updateUIGreeting(userFullName);
 
@@ -108,16 +110,12 @@ if (loginForm) {
                 "Content-Type": "application/json"
             },
 
-            body: JSON.stringify({
-                email,
-                password
-            })
+            body: JSON.stringify({ email, password })
         });
 
         if (!res.ok) {
 
             alert("Invalid login credentials");
-
             return;
         }
 
@@ -156,11 +154,7 @@ if (registerForm) {
                 "Content-Type": "application/json"
             },
 
-            body: JSON.stringify({
-                fullName,
-                email,
-                password
-            })
+            body: JSON.stringify({ fullName, email, password })
         });
 
         if (res.ok) {
@@ -175,12 +169,11 @@ if (registerForm) {
 
             alert("Registration failed.");
         }
-
     });
 }
 
 
-// Login/Register Switch
+// Switch Login/Register
 
 if (showRegister) {
 
@@ -205,7 +198,7 @@ if (showLogin) {
 }
 
 
-// Chat Send
+// Send Chat Message
 
 if (chatForm) {
 
@@ -239,16 +232,12 @@ if (chatForm) {
         if (!res.ok) {
 
             addMessage("Server error", "error");
-
             return;
         }
 
         const data = await res.json();
 
-        if (!currentChatId) {
-
-            currentChatId = data.chatId;
-        }
+        if (!currentChatId) currentChatId = data.chatId;
 
         addMessage(data.aiResponse, "model");
 
@@ -278,9 +267,27 @@ async function loadHistorySidebar() {
 
         const li = document.createElement("li");
 
-        li.textContent = chat.title;
+        li.className = "history-item";
 
-        li.onclick = () => loadChatSession(chat.id, chat.title);
+        const title = document.createElement("span");
+        title.className = "chat-title";
+        title.textContent = chat.title;
+
+        title.onclick = () => loadChatSession(chat.id, chat.title);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-chat-btn";
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+
+        deleteBtn.onclick = async (e) => {
+
+            e.stopPropagation();
+
+            await deleteChat(chat.id);
+        };
+
+        li.appendChild(title);
+        li.appendChild(deleteBtn);
 
         historyList.appendChild(li);
     });
@@ -306,7 +313,7 @@ async function loadChatSession(chatId, title) {
 
     chatMessages.innerHTML = "";
 
-    chatTitleDisplay.textContent = title;
+    if (chatTitleDisplay) chatTitleDisplay.textContent = title;
 
     data.messages.forEach(m => {
 
@@ -315,11 +322,44 @@ async function loadChatSession(chatId, title) {
 }
 
 
-// Clear Chats
+// Delete Single Chat
+
+async function deleteChat(chatId) {
+
+    const confirmDelete = confirm("Delete this chat?");
+
+    if (!confirmDelete) return;
+
+    const res = await fetch(`${API_BASE_URL}/api/messages/${chatId}`, {
+
+        method: "DELETE",
+
+        headers: {
+            "Authorization": `Bearer ${jwtToken}`
+        }
+    });
+
+    if (!res.ok) {
+
+        alert("Failed to delete chat");
+        return;
+    }
+
+    if (currentChatId === chatId) startNewChat();
+
+    loadHistorySidebar();
+}
+
+
+// Clear All Chats
 
 if (clearChatsBtn) {
 
     clearChatsBtn.addEventListener("click", async () => {
+
+        const confirmClear = confirm("Delete ALL chats?");
+
+        if (!confirmClear) return;
 
         await fetch(`${API_BASE_URL}/api/messages/clear`, {
 
@@ -370,7 +410,7 @@ function startNewChat() {
 
     chatMessages.innerHTML = "";
 
-    chatTitleDisplay.textContent = "New Conversation";
+    if (chatTitleDisplay) chatTitleDisplay.textContent = "New Conversation";
 }
 
 

@@ -1,3 +1,4 @@
+// ================= CONFIG =================
 const API_BASE_URL = "https://ivaai-backend.onrender.com/api";
 
 // ================= DOM ELEMENTS =================
@@ -20,6 +21,11 @@ const dropdownEmail = document.getElementById('dropdown-email');
 const clearChatsBtn = document.getElementById('clear-chats-btn');
 const headerUserName = document.getElementById('header-user-name');
 
+// Mobile Responsiveness Elements
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
 // ================= STATE =================
 let jwtToken = localStorage.getItem('iva_token');
 let userEmail = localStorage.getItem('iva_email');
@@ -32,6 +38,27 @@ themeToggle.addEventListener('click', () => {
     localStorage.setItem('theme', body.dataset.theme || 'dark');
     themeToggle.querySelector('i').className = body.dataset.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
 });
+
+// ================= MOBILE SIDEBAR LOGIC =================
+function toggleSidebar(forceClose = false) {
+    if (sidebar && sidebarOverlay) {
+        if (forceClose) {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+        } else {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('active');
+        }
+    }
+}
+
+if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', () => toggleSidebar());
+}
+
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(true));
+}
 
 // ================= PROFILE DROPDOWN LOGIC =================
 profileToggleBtn.addEventListener('click', (e) => {
@@ -182,6 +209,7 @@ clearChatsBtn.addEventListener('click', async (e) => {
         if (res.ok) {
             historyList.innerHTML = '';
             startNewChat();
+            toggleSidebar(true); // Auto-close mobile sidebar after clearing
         } else {
             alert("Failed to clear chats.");
         }
@@ -207,6 +235,10 @@ async function loadChatSession(chatId, title) {
 
         data.messages.forEach(m => addMessage(m.content, m.role));
         loadHistorySidebar();
+
+        // Mobile UI fix: Auto-close sidebar when a chat is selected
+        toggleSidebar(true);
+
     } catch (err) {
         console.error("Failed to load chat", err);
     }
@@ -222,6 +254,10 @@ function startNewChat() {
     addMessage(`Hello ${firstName}! I am Iva, your intelligent assistant created by Mohd Shawez Khan. How can I help you today?`, 'model');
 
     document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
+
+    // Mobile UI fix: Auto-close sidebar when starting a new chat
+    toggleSidebar(true);
+
     if (chatInput) chatInput.focus();
 }
 document.getElementById('new-chat-btn').addEventListener('click', startNewChat);

@@ -42,9 +42,14 @@
     <div id="app-section" class="hidden">
         <header id="main-header">
             <div class="header-container">
-                <div class="logo">IVA</div>
+                <!-- NEW: Grouped hamburger menu and logo -->
+                <div class="header-left">
+                    <button id="mobile-menu-btn" title="Open Menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="logo">IVA</div>
+                </div>
 
-                <!-- RE-ADDED GREETING SECTION -->
                 <div class="user-greeting">
                     <span id="header-user-name"></span>
                 </div>
@@ -79,6 +84,10 @@
         </header>
 
         <div id="app-layout">
+
+            <!-- NEW: Mobile Sidebar Overlay -->
+            <div id="sidebar-overlay"></div>
+
             <!-- Sidebar for Chat History -->
             <aside id="sidebar">
                 <button id="new-chat-btn"><i class="fas fa-plus"></i> New Chat</button>

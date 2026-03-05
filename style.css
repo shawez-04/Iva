@@ -182,6 +182,22 @@ body {
     align-items: center;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+#mobile-menu-btn {
+    display: none; /* Hidden by default on desktop */
+    background: none;
+    border: none;
+    color: var(--clr-primary-a0);
+    font-size: 1.5rem;
+    cursor: pointer;
+    margin-right: 1rem;
+    padding: 0.5rem;
+}
+
 .logo {
     font-size: 1.5rem;
     font-weight: 700;
@@ -208,12 +224,6 @@ body {
     color: var(--clr-primary-a0);
 }
 
-#logout-btn {
-    color: var(--error-color);
-    cursor: pointer;
-    font-weight: bold;
-}
-
 /* --- App Layout (Sidebar + Chat) --- */
 #app-layout {
     display: flex;
@@ -222,6 +232,17 @@ body {
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
+    position: relative;
+}
+
+/* --- Sidebar Overlay (Mobile) --- */
+#sidebar-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+    backdrop-filter: blur(2px);
 }
 
 /* --- Sidebar (History) --- */
@@ -235,6 +256,7 @@ body {
     box-sizing: border-box;
     flex-shrink: 0;
     overflow-y: auto;
+    transition: transform 0.3s ease;
 }
 
 #new-chat-btn {
@@ -307,6 +329,7 @@ main {
     justify-content: center;
     padding: 1.5rem;
     overflow: hidden;
+    width: 100%;
 }
 
 #chat-window {
@@ -334,6 +357,14 @@ main {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    overflow: hidden;
+}
+
+.header-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.1rem;
 }
 
 [data-theme='light'] .header-title {
@@ -349,6 +380,7 @@ main {
     padding: 0.5rem;
     border-radius: 50%;
     transition: transform 0.3s;
+    flex-shrink: 0;
 }
 
     #theme-toggle:hover {
@@ -459,6 +491,7 @@ main {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
+    flex-shrink: 0;
 }
 
 [data-theme='light'] #chat-form button {
@@ -472,12 +505,6 @@ main {
 #chat-form button:disabled {
     background-color: var(--clr-surface-a30);
     cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-    #sidebar {
-        display: none;
-    }
 }
 
 /* --- Profile Dropdown --- */
@@ -494,7 +521,7 @@ main {
 .profile-btn {
     background: none;
     border: none;
-    color: var(--clr-light-a0); /* Explicitly set to theme variable */
+    color: var(--clr-light-a0);
     cursor: pointer;
     font-size: 1rem;
     display: flex;
@@ -504,7 +531,7 @@ main {
 }
 
 [data-theme='light'] .profile-btn {
-    color: var(--clr-dark-a0); /* Automatically swaps in light mode */
+    color: var(--clr-dark-a0);
 }
 
 .profile-icon {
@@ -520,8 +547,8 @@ main {
     position: absolute;
     right: 0;
     top: 120%;
-    background-color: var(--clr-surface-a10); /* Dynamic background */
-    color: var(--clr-light-a0); /* Dynamic text color */
+    background-color: var(--clr-surface-a10);
+    color: var(--clr-light-a0);
     border: 1px solid var(--border-color);
     border-radius: 0.75rem;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -567,15 +594,14 @@ main {
         background-color: var(--clr-surface-a20);
     }
 
-/* Reddish Logout & Delete Text/Icons */
 .logout-item {
-    color: var(--error-color); /* Linked directly to error-color variable */
+    color: var(--error-color);
     border-top: 1px solid var(--border-color);
 }
 
 .reddish-icon,
 .delete-icon {
-    color: var(--error-color) !important; /* Forced reddish color globally */
+    color: var(--error-color) !important;
 }
 
 /* --- Sidebar Layout & Contact Footer --- */
@@ -639,14 +665,13 @@ main {
 
 [data-theme='light'] .footer-link {
     color: var(--clr-dark-a0);
-    background-color: var(--clr-surface-a20); /* Slightly darker background in light mode to stand out */
+    background-color: var(--clr-surface-a20);
 }
 
     [data-theme='light'] .footer-link:hover {
         background-color: var(--clr-surface-a30);
     }
 
-/* --- Individual Chat Delete Icon --- */
 .chat-item-content {
     display: flex;
     align-items: center;
@@ -667,16 +692,68 @@ main {
     padding: 4px;
     font-size: 0.8rem;
     cursor: pointer;
-    opacity: 0; /* Hidden by default */
+    opacity: 0;
     transition: opacity 0.2s ease;
 }
 
-/* Show icon when hovering over the chat item */
 .history-item:hover .delete-icon {
     opacity: 0.6;
 }
 
-/* Full opacity when hovering over the trash can itself */
 .delete-icon:hover {
     opacity: 1 !important;
+}
+
+
+/* MOBILE RESPONSIVENESS (SMARTPHONES/TABLETS) */
+@media (max-width: 768px) {
+    /* Show hamburger menu */
+    #mobile-menu-btn {
+        display: block;
+    }
+
+    /* Hide User Greeting to save header space */
+    .user-greeting {
+        display: none;
+    }
+
+    /* Transform Sidebar into a Slide-in Drawer */
+    #sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 200;
+        transform: translateX(-100%); /* Hide off-screen by default */
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    }
+
+        #sidebar.open {
+            transform: translateX(0); /* Slide in */
+        }
+
+    /* Show overlay when sidebar is open */
+    #sidebar-overlay.active {
+        display: block;
+    }
+
+    /* Main Area Adjustments */
+    #main-header {
+        padding: 1rem;
+    }
+
+    main {
+        padding: 0; /* Remove side padding on mobile */
+    }
+
+    #chat-window {
+        border-radius: 0; /* Take up full width cleanly */
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    .message {
+        max-width: 95%; /* Allow bubbles to take more horizontal space */
+    }
 }

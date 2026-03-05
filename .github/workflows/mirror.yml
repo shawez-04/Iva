@@ -16,11 +16,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Remove workflows before mirroring
+      - name: Remove workflows from mirror copy
         run: |
           rm -rf .github/workflows
+          git add -A
+          git commit -m "remove workflows for mirror deploy" || echo "No changes"
 
-      - name: Mirror repository
+      - name: Push to mirror repo
         env:
           TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
@@ -30,4 +32,4 @@ jobs:
           git remote remove mirror || true
           git remote add mirror https://x-access-token:$TOKEN@github.com/shawez-0422/IvaAI-backend.git
 
-          git push mirror master --force
+          git push mirror HEAD:master --force

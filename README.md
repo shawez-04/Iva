@@ -1,16 +1,16 @@
-🤖 Iva AI Companion
+**🤖 Iva AI Companion**
 
 Iva AI Companion is a full-stack AI-powered conversational assistant built with .NET 8 Web API, PostgreSQL, and Vanilla JavaScript.
 
 The system provides secure authentication, persistent chat history, and contextual AI responses powered by Google Gemini. This project demonstrates production-grade backend architecture, scalable API design, AI integration, and modern deployment practices.
 
-🌐 Live Demo
+**🌐 Live Demo**
 
 Frontend (GitHub Pages): https://shawez-04.github.io/IvaAI/
 
 Backend API (Render): https://ivaai-backend.onrender.com
 
-🏗️ System Architecture
+**🏗️ System Architecture**
 
 The project follows a clean layered architecture that separates concerns across different layers.
 
@@ -44,7 +44,7 @@ Rate limiting for abuse protection
 
 Containerized deployment
 
-🧩 System Design Diagram
+**🧩 System Design Diagram**
 
                     ┌───────────────────────────┐
                     │        User Browser       │
@@ -95,7 +95,7 @@ Containerized deployment
                        └───────────────────────┘
 
 
-🔄 Message Request Lifecycle
+**🔄 Message Request Lifecycle**
 
 When a user sends a message, the system processes it as follows:
 
@@ -168,9 +168,9 @@ The API returns:
 
 The UI updates instantly.
 
-⚙️ Backend Features (.NET 8)
+**⚙️ Backend Features (.NET 8)**
 
-🔐 Authentication & Security
+**🔐 Authentication & Security**
 
 Secure authentication is implemented using JWT tokens. Features include:
 
@@ -186,7 +186,7 @@ Claims-based authorization
 
 JWT tokens contain: UserId, Email, FullName
 
-🧠 AI Integration (Google Gemini)
+**🧠 AI Integration (Google Gemini)**
 
 The AI functionality is powered by gemini-2.5-flash. A dedicated GeminiService handles:
 
@@ -204,7 +204,7 @@ AI Persona: The assistant behaves as Iva AI Companion and acknowledges Mohd Shaw
 
 To maintain context, every AI request sends the Complete chat history + Current user message. This enables multi-turn conversations.
 
-🗄️ Database Design
+**🗄️ Database Design**
 
 The system uses PostgreSQL (Neon) with Entity Framework Core.
 
@@ -228,7 +228,7 @@ Deleting a User removes all their chats.
 
 Deleting a Chat removes all its messages.
 
-🚀 Smart Message Endpoint
+**🚀 Smart Message Endpoint**
 
 Instead of two calls (Create Chat & Send Message), the backend performs everything through a single endpoint: POST /api/messages/send.
 
@@ -246,7 +246,7 @@ Returns result
 
 Benefits: Reduced latency, fewer network requests, and better UX.
 
-🛡️ API Reliability
+**🛡️ API Reliability**
 
 Global Exception Handling
 
@@ -263,12 +263,12 @@ Rate Limiting
 A fixed-window rate limiter prevents abuse.
 Strategy: Rate limit per UserId, with a fallback to IP address if unauthenticated.
 
-🌐 Frontend Features
+**🌐 Frontend Features**
 
 The frontend is a lightweight SPA using vanilla JavaScript.
 Benefits: Fast loading, minimal dependencies, simple architecture.
 
-🔑 Authentication State
+**🔑 Authentication State**
 
 Authentication data is securely stored in localStorage (jwtToken, userEmail, userFullName).
 
@@ -276,7 +276,7 @@ Auto Login: Users automatically bypass login if a valid token exists.
 
 Auto Logout: If the API returns 401 Unauthorized, the system logs out automatically.
 
-💬 Chat Interface
+**💬 Chat Interface**
 
 Real-time chat rendering & Auto scrolling
 
@@ -284,7 +284,7 @@ User vs AI message bubbles
 
 Loading indicator during AI responses
 
-📜 Chat History
+**📜 Chat History**
 
 Sidebar displays previous conversations. Users can load past chats, delete individual chats, or clear all chats.
 
@@ -314,28 +314,28 @@ Background overlay blur
 
 Auto-close sidebar on chat selection
 
-🐳 DevOps & Deployment
+**🐳 DevOps & Deployment**
 
 Docker
 
 Backend containerized using a multi-stage Docker build.
 Benefits: Smaller image size, clean builds, easy deployment.
 
-🌍 Deployment
+**🌍 Deployment**
 
 Backend: Hosted on Render (Container hosting, Auto deployment, Production API hosting).
 
 Frontend: Hosted on GitHub Pages (Static hosting, Global CDN, Fast loading).
 
-📡 API Endpoints
+**📡 API Endpoints**
 
-Authentication
+_Authentication_
 
 POST /api/auth/register
 
 POST /api/auth/login
 
-Chats
+_Chats_
 
 GET /api/chats
 
@@ -343,15 +343,15 @@ DELETE /api/chats/{chatId}
 
 DELETE /api/chats/clear
 
-Messages
+_Messages_
 
 POST /api/messages/send
 
 GET /api/messages/{chatId}
 
-🛠️ Tech Stack
+**🛠️ Tech Stack**
 
-Backend
+_Backend_
 
 .NET 8 Web API
 
@@ -365,7 +365,7 @@ BCrypt.Net-Next
 
 Google Gemini API
 
-Frontend
+_Frontend_
 
 HTML5
 
@@ -375,7 +375,7 @@ Vanilla JavaScript
 
 FontAwesome
 
-DevOps & Deployment
+_DevOps & Deployment_
 
 Docker
 
@@ -383,10 +383,11 @@ Render
 
 GitHub Pages
 
-👨‍💻 Author
+**👨‍💻 Author**
 
 Mohd Shawez Khan Electronics & Communication Engineering | Full-Stack & Backend Developer
 
 GitHub: https://github.com/shawez-04
 
 LinkedIn: https://www.linkedin.com/in/mohd-shawez-khan
+

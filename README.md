@@ -6,7 +6,7 @@ The system provides secure authentication, persistent chat history, and contextu
 
 **🌐 Live Demo**
 
-Frontend (GitHub Pages): https://shawez-04.github.io/IvaAI/
+Frontend (GitHub Pages): https://shawez-04.github.io/Iva/
 
 Backend API (Render): https://ivaai-backend.onrender.com
 
